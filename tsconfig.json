@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "outDir": "./built",
+        "allowJs": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "lib": ["ES2018", "DOM"],
+        "sourceMap": true
+    },
+    "include": [
+        "./Discord-Bot-Core/**/*",
+        "./Discord-Bot-Core/**/*.json",
+        "./handlers/**/*",
+        "./handlers/**/*.json",
+        "./modules/**/*",
+        "./modules/**/*.json",
+        "./src/**/*",
+        "./*.json"
+    ]
+}
