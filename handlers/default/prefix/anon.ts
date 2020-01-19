@@ -23,6 +23,9 @@ module.exports = {
     rateLimitUser: 1,
     rateLimitGlobal: -1,
     async execute(msg : Discord.Message, args : Array<string>) {
+
+        //TODO: Add support for attachments
+
         const channelOut = msg.guild.channels.find( (ch) => ch.name === chDestName) as Discord.TextChannel;
 
         let msgBody : string;
