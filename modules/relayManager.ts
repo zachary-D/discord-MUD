@@ -1,5 +1,7 @@
 import * as Discord from "discord.js";
 
+import * as system from "./system";
+
 let corruptionLevel = 0;
 
 export function getCorruptionLevel() : number
@@ -214,6 +216,8 @@ function corruptString(str : string) : string {
 
 export async function relay(content : string, srcChannel : Discord.TextChannel)
 {
+	if(system.state != system.SystemState.normal) return;
+
     const chPrefix = "relay-";
     const targetChName = srcChannel.name.substr(srcChannel.name.indexOf(chPrefix) + chPrefix.length);
     const channelOut = srcChannel.guild.channels.find( (ch) => ch.name === targetChName) as Discord.TextChannel;

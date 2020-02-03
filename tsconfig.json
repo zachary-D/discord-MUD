@@ -1,11 +1,12 @@
 {
     "compilerOptions": {
-        "outDir": "./built",
         "allowJs": true,
+        "lib": ["ES2018", "DOM", "ES7"],
         "moduleResolution": "node",
+        "outDir": "./built",
         "resolveJsonModule": true,
-        "lib": ["ES2018", "DOM"],
-        "sourceMap": true
+        "sourceMap": true,
+        "target": "ESNext"
     },
     "include": [
         "./Discord-Bot-Core/**/*",
