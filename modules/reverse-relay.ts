@@ -61,7 +61,7 @@ function createRelay(channel : Discord.TextChannel)
     relays.push(new Relay(channelSrc, channel));
 }
 
-function loadRealysInServer(server : Discord.Guild)
+function loadRelaysInServer(server : Discord.Guild)
 {
     server.channels.forEach( (ch) => {
         if(ch.name.startsWith(chPrefix)) createRelay(ch as Discord.TextChannel);
@@ -75,7 +75,7 @@ function loadRelays()
     if(didLoad) return;
     
     client.guilds.forEach( (s) => {
-        loadRealysInServer(s);
+        loadRelaysInServer(s);
     });
 
     didLoad = true;

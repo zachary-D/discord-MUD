@@ -102,7 +102,7 @@ export function setCorruptionLevel(level : number)
 	//---------------------------------------------------
 	function zalgo(txt)
 	{
-		var newtxt = '';
+		var newText = '';
 			
 		for(var i=0; i<txt.length; i++)
 		{
@@ -114,7 +114,7 @@ export function setCorruptionLevel(level : number)
 			var num_down;
 			
 			//add the normal character
-			newtxt += txt.substr(i, 1);
+			newText += txt.substr(i, 1);
 
 			//options
 			// if(document.getElementById('zalgo_opt_mini').checked)
@@ -139,16 +139,16 @@ export function setCorruptionLevel(level : number)
 			
 			// if(document.getElementById('zalgo_opt_up').checked)
 				for(var j=0; j<num_up; j++)
-					newtxt += rand_zalgo(zalgo_up);
+					newText += rand_zalgo(zalgo_up);
 			// if(document.getElementById('zalgo_opt_mid').checked)
 				for(var j=0; j<num_mid; j++)
-					newtxt += rand_zalgo(zalgo_mid);
+					newText += rand_zalgo(zalgo_mid);
 			// if(document.getElementById('zalgo_opt_down').checked)
 				for(var j=0; j<num_down; j++)
-					newtxt += rand_zalgo(zalgo_down);
+					newText += rand_zalgo(zalgo_down);
 		}
 
-		//result is in nextxt, display that
+		//result is in newText, display that
 		
 		//remove all children of zalgo_container
 		// var container = document.getElementById('zalgo_container');
@@ -156,7 +156,7 @@ export function setCorruptionLevel(level : number)
 		// 	container.removeChild(container.childNodes[0]);
 
 		//build blocks for each line & create a <br />
-		// var lines = newtxt.split("\n");
+		// var lines = newText.split("\n");
 		// for(var i=0; i<lines.length; i++)
 		// {
 		// 	var n = document.createElement('text');
@@ -167,7 +167,7 @@ export function setCorruptionLevel(level : number)
 		// }
 
         //done
-        return newtxt;
+        return newText;
 	}
 
 
