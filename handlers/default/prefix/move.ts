@@ -1,5 +1,7 @@
 import * as Discord from "discord.js";
 
+import * as rooms from "../../../modules/roomManager";
+
 module.exports = {
     name: 'move',
     description: '',
@@ -16,6 +18,13 @@ module.exports = {
     // rateLimitUser: 1,
     // rateLimitGlobal: -1,
     async execute(msg : Discord.Message, args : Array<string>) {
-        //Command
+        try
+        {
+            rooms.moveToRoom(msg.member, msg.channel as Discord.TextChannel, args[0]);
+        }
+        catch(err)
+        {
+            msg.reply("Failed to move!");
+        }
     }
 }

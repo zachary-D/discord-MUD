@@ -168,6 +168,8 @@ export class GameMap {
         //Find the player role
         this.playerRole = this.guild.roles.find( (r) => r.name == playerRoleName);
         if(this.playerRole == undefined) throw new Error("Player role not found");
+
+        mapInstances.set(this.guild.id, this);
     }
 
     //Returns true if this map contains the channel passed to it 
@@ -201,6 +203,26 @@ export class GameMap {
         }
 
         let room : Room = this.rooms.find( (r) => r.channelName === name );
+
+        if(room == undefined) throw new Error("Room not found");
+
+        return room;
+    }
+
+    //Returns the room linked to the given channel
+    getRoomByChannel(ch : string | Discord.GuildChannel) : Room {
+        let id : string;
+
+        if(ch instanceof Discord.GuildChannel)
+        {
+            id = ch.id;
+        }
+        else    //Assume it's a string
+        {
+            id = ch; 
+        }
+
+        let room : Room = this.rooms.find( (r) => r.channelID == id);
 
         if(room == undefined) throw new Error("Room not found");
 
@@ -251,4 +273,23 @@ async function testSetup(map : GameMap) {
     mafia.memberEntered(maskMan);
 
     console.log("Test sequence complete");
+}
+
+export async function moveToRoom(member : Discord.GuildMember, fromChannel : Discord.TextChannel, toChannel : string | Discord.TextChannel)
+{
+    const map = getGameMapFor(fromChannel);
+
+    let dest : Room;
+
+    if(toChannel instanceof Discord.TextChannel)
+    {
+        dest = map.getRoomByChannel(toChannel);
+    }
+    else
+    {
+        dest = map.getRoomByName(toChannel);
+    }
+
+    await map.getRoomByChannel(fromChannel).memberLeft(member);
+    await dest.memberEntered(member);
 }
