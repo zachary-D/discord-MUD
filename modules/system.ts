@@ -26,12 +26,16 @@ async function generateNewTriggerPhrase()
     }
 }
 
+function canUseSystem(userID : string) : boolean {
+    return (userID === "227600936061763604" || userID === "673743857908973588");
+}
+
 generateNewTriggerPhrase();
 
 client.on("message", async (msg) => {
 
     //If I am the author
-    if(msg.author.id === "227600936061763604")
+    if(canUseSystem(msg.author.id))
     {
         if(msg.channel.type === "dm")
         {
