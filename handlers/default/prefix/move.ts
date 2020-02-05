@@ -20,7 +20,7 @@ module.exports = {
     async execute(msg : Discord.Message, args : Array<string>) {
         try
         {
-            await rooms.moveToRoom(msg.member, msg.channel as Discord.TextChannel, args[0]);
+            // await rooms.moveToRoom(msg.member, msg.channel as Discord.TextChannel, args[0]);
         }
         catch(err)
         {
