@@ -20,11 +20,20 @@ module.exports = {
     async execute(msg : Discord.Message, args : Array<string>) {
         try
         {
-            rooms.moveToRoom(msg.member, msg.channel as Discord.TextChannel, args[0]);
+            await rooms.moveToRoom(msg.member, msg.channel as Discord.TextChannel, args[0]);
         }
         catch(err)
         {
-            msg.reply("Failed to move!");
+            if(err instanceof Error)
+            {
+                if(err.message === "destination is locked")
+                {
+                    await msg.reply("That room is locked, you cannot enter it ");
+                    return;
+                }
+            }
+
+            await msg.reply("Failed to move!");
         }
     }
 }

@@ -44,7 +44,17 @@ export function getGameMapFor(id : string | Discord.TextChannel | Discord.Guild)
 
 export class Room {
     //The channel for this room
-    protected channel : Discord.TextChannel;
+    protected textChannel : Discord.TextChannel;
+
+    //If this room can be entered
+    protected locked : boolean;
+
+    //If this room is visible (appears on room lists)
+    protected visible : boolean;
+
+    get channel() : Discord.TextChannel {
+        return this.textChannel;
+    }
 
     get channelID() : string {
         return this.channel.id;
@@ -54,15 +64,23 @@ export class Room {
         return this.channel.name;
     }
 
+    get isLocked() : boolean {
+        return this.locked;
+    }
+
+    get isVisible() : boolean {
+        return this.visible;
+    }
+
     constructor(category : string | Discord.TextChannel)
     {
         if(category instanceof Discord.TextChannel)
         {
-            this.channel = category;
+            this.textChannel = category;
         }
         else    //Assume it's a string
         {
-            this.channel = client.channels.get(category) as Discord.TextChannel;
+            this.textChannel = client.channels.get(category) as Discord.TextChannel;
         }
 
         console.log(`New room instance in ${this.channel.name}`);
@@ -73,6 +91,8 @@ export class Room {
     //Allows a user to view this channel
     async allowMember(member : Discord.GuildMember)
     {
+        if(this.locked) throw new Error("Cannot enter - room is locked");
+        
         let newPerms : Discord.PermissionOverwriteOptions = {
             READ_MESSAGES : true,
             SEND_MESSAGES : true,
@@ -290,6 +310,9 @@ export async function moveToRoom(member : Discord.GuildMember, fromChannel : Dis
         dest = map.getRoomByName(toChannel);
     }
 
-    await map.getRoomByChannel(fromChannel).memberLeft(member);
+    if(dest.locked) throw new Error("destination is locked");
+
+    //Move the user into the destination first, to ensure users cannot be stranded
     await dest.memberEntered(member);
+    await map.getRoomByChannel(fromChannel).memberLeft(member);
 }
