@@ -33,7 +33,7 @@ export class Game {
     protected playerRole : Discord.Role;
     
     //The rooms contained within the map
-    protected rooms = new Discord.Collection<string, Room>();
+    rooms = new Discord.Collection<string, Room>();
 
     constructor(category : string | Discord.CategoryChannel)
     {
@@ -65,7 +65,7 @@ export class Game {
 
             this.rooms.set(
                 this.categoryChannel.children.array()[i].id,
-                new Room(this.categoryChannel.children.array()[i] as Discord.TextChannel)
+                new Room(this.categoryChannel.children.array()[i] as Discord.TextChannel, this)
             );
         }
 
@@ -137,6 +137,7 @@ export class Game {
         return room;
     }
 
+    //Returns the player for a given user
     getPlayer(p : Discord.Snowflake | Discord.User) : Player
     {
         if(p instanceof Discord.User)
@@ -149,6 +150,11 @@ export class Game {
         if(player == undefined) throw new Error("Player not found");
 
         return player;
+    }
+
+    //Returns a list of players in a given room
+    getPlayersInRoom(room : Room) : Player[] {
+        return this.players.filter( p => p.currentRoom == room).array();
     }
 
     //Handles a message
@@ -252,9 +258,10 @@ export class Player {
 
     //Returns a list of room names this player
     getKnownRooms() : string[] {
-        return this.knownRooms.array().map( r => {
-            return r.channel.name;
-        });
+        // return this.knownRooms.array().map( r => {
+        //     return r.channel.name;
+        // });
+        return this.game.rooms.array().map( r => r.channel.name).sort();
     }
 
     //Marks the room as 'known'
@@ -296,6 +303,9 @@ export class Room {
     //The rooms connected to this one
     connectedRooms : Room[] = [];
 
+    //The game this room belongs to
+    protected _game : Game;
+
     //The channel for this room
     protected textChannel : Discord.TextChannel;
 
@@ -325,7 +335,11 @@ export class Room {
         return this.visible;
     }
 
-    constructor(category : string | Discord.TextChannel)
+    get game() : Game {
+        return this._game;
+    }
+
+    constructor(category : string | Discord.TextChannel, game : Game)
     {
         if(category instanceof Discord.TextChannel)
         {
@@ -339,6 +353,8 @@ export class Room {
         console.log(`New room instance in ${this.channel.name}`);
 
         if(this.channel.type != "text") throw new Error("The channel is not a text channel");
+
+        this._game = game;
     }
 
     //Allows a user to view this channel
@@ -394,9 +410,17 @@ export class Room {
     {
         await this.allowPlayer(player);
 
-        await this.channel.send(`${player.member.displayName} entered the room`);
+        const embed = new Discord.RichEmbed();
+        embed.setTitle(`\`${player.member.displayName}\` has entered the room`);
+        embed.setThumbnail(player.member.user.avatarURL);
 
-        //TODO: Build and send the 'entered, occupants' embed
+        let players = this.game.getPlayersInRoom(this).map(p=>p.member.displayName).sort();
+        if(players.length != 0)
+        {
+            embed.addField("People in the room", '`' + players.join("`\n`") + '`');
+        }
+
+        await this.channel.send(embed);
     }
 
     //Sends the "user left the room" message and prevents a user from viewing the channel
@@ -406,7 +430,11 @@ export class Room {
 
         await this.excludePlayer(player);
 
-        await this.channel.send(`${player.member.displayName} left the room`);
+        const embed = new Discord.RichEmbed();
+        embed.setTitle(`\`${player.member.displayName}\` has left the room`);
+        embed.setThumbnail(player.member.user.avatarURL);
+
+        await this.channel.send(embed);
     }
 }
 
