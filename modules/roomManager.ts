@@ -8,6 +8,9 @@ const playerRoleName = "Participants";
 //The name of the channel containing info (i.e. how to use the bot) that is in the category but should not be treated as a room
 const infoChannelName = "the-map";
 
+//The name of the channel that players occupy by default
+const defaultChannelName = "limbo";
+
 // let gameInstances = new Discord.Collection<string, Game>();
 
 export let game : Game;
@@ -94,12 +97,6 @@ export class Game {
         return false;
     }
 
-    //Starts the game
-    async start() : Promise<void>
-    {
-
-    }
-
     //Returns the room with the name matching `name`
     getRoomByName(name : string) : Room {
         
@@ -154,6 +151,18 @@ export class Game {
         return player;
     }
 
+    //Handles a message
+    async handleMessage(msg : Discord.Message) : Promise<void> {
+        if(msg.channel instanceof Discord.DMChannel)
+        {
+            //handle commands via DM in the future
+        }
+        else if(msg.channel instanceof Discord.TextChannel)
+        {
+            this.getRoomByChannel(msg.channel).handleMessage(msg);
+        }
+    }
+
     //Moves a player from one room to another
     async movePlayer(player : Player, from : Room, to : Room)
     {
@@ -172,6 +181,19 @@ export class Game {
         });
 
         await Promise.all(proms);
+    }
+
+    //Starts the game
+    async start() : Promise<void>
+    {
+        console.log("Starting the game");
+
+        let promises = [];
+        this.players.forEach( p => promises.push(this.resyncPlayerRoomPermissions(p)));
+
+        await Promise.all(promises);
+        
+        console.log("Done");
     }
 }
 
@@ -210,18 +232,38 @@ export class Player {
         this.guildMember = member;
         this.parentGame = game;
 
+        console.log(`New player instance for ${member.displayName} aka ${member.user.tag}`);
+
         //TODO: remove this it's a temp fix
         //TEMP:
-        this._currentRoom = this.game.getRoomByName("limbo");
+        this._currentRoom = this.game.getRoomByName(defaultChannelName);
+        this.learnRoom(this.currentRoom);
+    }
+
+    //Displays the rooms a user knows to the  user
+    async displayKnownRooms(msg : Discord.Message) : Promise<void> {
+        const embed = new Discord.RichEmbed;
+        
+        embed.setTitle(`Rooms known to \`${msg.member.displayName}\``);
+        embed.addField("Rooms", '`' + this.getKnownRooms().join("`\n`") + '`');
+
+        await msg.reply(embed);
     }
 
     //Returns a list of room names this player
-    getRoomsICanMoveTo() : string[] {
+    getKnownRooms() : string[] {
         return this.knownRooms.array().map( r => {
             return r.channel.name;
         });
     }
 
+    //Marks the room as 'known'
+    learnRoom(room : Room)
+    {
+        this.knownRooms.set(room.channel.id, room);
+    }
+
+    //Moves the player to a room
     async moveTo(room : Room | string) : Promise<void> {
         if(room instanceof Room)
         {
@@ -231,17 +273,29 @@ export class Player {
         {
             let n = this.game.getRoomByName(room);
             if(n == undefined) n = this.game.getRoomByChannel(room);
-            if(n == undefined) throw new Error(`Unable to find a room matching "${room}"`) 
+            if(n == undefined) throw new Error(`room unknown to player`) 
             room = n;
         }
 
+        if(this._currentRoom == room) throw new Error("user is already in that room");
+
+        //TODO: finish the linked-rooms system and enable this check
+        // if(this.knownRooms.get(room.channel.id) == undefined) throw new Error("room unknown to player");
+
         await this.game.movePlayer(this, this.currentRoom, room);
         this._currentRoom = room;
+
+        room.connectedRooms.forEach( r => {
+            this.learnRoom(r);
+        })
     }
 }
 
 //A room players can enter
 export class Room {
+    //The rooms connected to this one
+    connectedRooms : Room[] = [];
+
     //The channel for this room
     protected textChannel : Discord.TextChannel;
 
@@ -313,6 +367,28 @@ export class Room {
         await this.channel.overwritePermissions(player.member, newPerms);
     }
 
+    //Handles a message in this room
+    async handleMessage(msg : Discord.Message) : Promise<void> {
+        try 
+        {
+            await msg.delete(10*1000); //Delete after a few seconds
+        }
+        catch(err)
+        {
+            if(err instanceof Discord.DiscordAPIError)
+            {
+                if(err.message = "Unknown Message")
+                {
+                    //Assume it was a command or a message that was otherwise deleted previously
+                    return;
+                }
+            }
+
+            //re-throw it otherwise
+            throw err;
+        }
+    }
+
     //Sends the "user entered the room, current occupants" message and allows a user to view the channel
     async playerEntered(player : Player)
     {
@@ -375,6 +451,10 @@ client.on("ready", () => {
     alreadyInit = true;
 
     testSetup(game);
+});
+
+client.on("message", async (msg) => {
+    game.handleMessage(msg);
 });
 
 function sleep(ms : number) : Promise<void>

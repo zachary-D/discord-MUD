@@ -1,6 +1,7 @@
 import * as Discord from "discord.js";
 
 import {client} from "../Discord-Bot-Core/bot";
+import * as rooms from "./roomManager";
 
 import * as version from "../version.json";
 
@@ -39,16 +40,16 @@ client.on("message", async (msg) => {
     {
         if(msg.channel.type === "dm")
         {
-            
-                if(msg.cleanContent === "!phrase")
-                {
-                    await generateNewTriggerPhrase();
-                    msg.reply(triggerPhrase);
-                }
-                else
-                {
-                    //Handle other commands in the future
-                }
+        
+            if(msg.cleanContent === "!phrase")
+            {
+                await generateNewTriggerPhrase();
+                msg.reply(triggerPhrase);
+            }
+            else
+            {
+                //Handle other commands in the future
+            }
         }
         else if(msg.channel.type === "text")
         {
@@ -81,6 +82,10 @@ client.on("message", async (msg) => {
                 {
                     state = SystemState.normal;
                     await msg.channel.send("[SYSTEM] N-Network resumed.  Returning to normal operation.")
+                }
+                else if(msg.cleanContent === "$start")
+                {
+                    rooms.game.start();
                 }
             }
         }

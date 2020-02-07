@@ -3,7 +3,7 @@ import * as Discord from "discord.js";
 import * as rooms from "../../../modules/roomManager";
 
 module.exports = {
-    name: 'move',
+    name: 'rooms',
     description: '',
     aliases: [],
     //Comment out permissions/channel/server requirements if you want it to run everywhere/by everyone/etc
@@ -20,35 +20,24 @@ module.exports = {
     async execute(msg : Discord.Message, args : Array<string>) {
         try
         {
-            await rooms.game.getPlayer(msg.author).moveTo(args[0]);
+            await rooms.game.getPlayer(msg.author).displayKnownRooms(msg);
         }
         catch(err)
         {
             if(err instanceof Error)
             {
-                if(err.message === "destination is locked")
-                {
-                    await msg.reply("That room is locked, you cannot enter it ");
-                    return;
-                }
-                else if(err.message === "Player not found")
+                if(err.message === "Player not found")
                 {
                     await msg.reply("Error: could not find user profile");
                     return;
                 }
-                else if(err.message === "room unknown to player")
-                {
-                    await msg.reply("You don't know of any room with that name");
-                    return
-                }
-                else if(err.message === "user is already in that room")
-                {
-                    await msg.reply("You're already in that room");
-                    return;
-                }
             }
 
-            await msg.reply("Failed to move!");
+            await msg.reply("Failed to get rooms!");
+        }
+        finally
+        {
+            await msg.delete();
         }
     }
 }
