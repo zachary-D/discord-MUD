@@ -20,6 +20,7 @@ module.exports = {
     async execute(msg : Discord.Message, args : Array<string>) {
         try
         {
+            await rooms.game.getPlayer(msg.author).moveTo(args[0]);
             // await rooms.moveToRoom(msg.member, msg.channel as Discord.TextChannel, args[0]);
         }
         catch(err)
@@ -29,6 +30,11 @@ module.exports = {
                 if(err.message === "destination is locked")
                 {
                     await msg.reply("That room is locked, you cannot enter it ");
+                    return;
+                }
+                else if(err.message === "Player not found")
+                {
+                    await msg.reply("Error: could not find user profile");
                     return;
                 }
             }

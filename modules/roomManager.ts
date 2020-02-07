@@ -8,7 +8,9 @@ const playerRoleName = "Participants";
 //The name of the channel containing info (i.e. how to use the bot) that is in the category but should not be treated as a room
 const infoChannelName = "the-map";
 
-let gameInstances = new Discord.Collection<string, Game>();
+// let gameInstances = new Discord.Collection<string, Game>();
+
+export let game : Game;
 
 //A game
 export class Game {
@@ -72,8 +74,7 @@ export class Game {
             this.players.set(m.id, new Player(m, this));
         })
 
-
-        gameInstances.set(this.guild.id, this);
+        // gameInstances.set(this.guild.id, this);
     }
 
     //Returns true if this map contains the channel passed to it 
@@ -91,6 +92,12 @@ export class Game {
         }
 
         return false;
+    }
+
+    //Starts the game
+    async start() : Promise<void>
+    {
+
     }
 
     //Returns the room with the name matching `name`
@@ -133,6 +140,20 @@ export class Game {
         return room;
     }
 
+    getPlayer(p : Discord.Snowflake | Discord.User) : Player
+    {
+        if(p instanceof Discord.User)
+        {
+            p = p.id;
+        }
+        
+        let player : Player = this.players.get(p);
+
+        if(player == undefined) throw new Error("Player not found");
+
+        return player;
+    }
+
     //Moves a player from one room to another
     async movePlayer(player : Player, from : Room, to : Room)
     {
@@ -141,16 +162,17 @@ export class Game {
         await from.playerLeft(player);
     }
 
-    // async excludePlayerFromAllRooms(player : Discord.GuildMember) : Promise<void>
-    // {
-    //     let proms : Promise<unknown>[] = [];
+    async resyncPlayerRoomPermissions(player : Player) : Promise<void>
+    {
+        let proms : Promise<unknown>[] = [];
 
-    //     this.rooms.forEach( r => {
-    //         proms.push( r.excludePlayer(member) );
-    //     });
+        this.rooms.forEach( r => {
+            if(r == player.currentRoom) proms.push(r.allowPlayer(player));
+            else proms.push( r.excludePlayer(player) );
+        });
 
-    //     await Promise.all(proms);
-    // }
+        await Promise.all(proms);
+    }
 }
 
 //A player in a game
@@ -187,6 +209,10 @@ export class Player {
     {
         this.guildMember = member;
         this.parentGame = game;
+
+        //TODO: remove this it's a temp fix
+        //TEMP:
+        this._currentRoom = this.game.getRoomByName("limbo");
     }
 
     //Returns a list of room names this player
@@ -210,6 +236,7 @@ export class Player {
         }
 
         await this.game.movePlayer(this, this.currentRoom, room);
+        this._currentRoom = room;
     }
 }
 
@@ -301,41 +328,42 @@ export class Room {
     {
         //Build and send the 'left' embed
 
-
         await this.excludePlayer(player);
+
+        await this.channel.send(`${player.member.displayName} left the room`);
     }
 }
 
-//Returns the map instance for the guild or TextChannel passed to it (also works by ID)
-export function getGameFor(id : string | Discord.TextChannel | Discord.Guild) : Game
-{
-    //Convert guild & channel objects to IDs
-    if(id instanceof Discord.Guild)
-    {
-        id = id.id;
-    }
-    else if(id instanceof Discord.TextChannel)
-    {
-        id = id.id;
-    }
-    else    //Assume string
-    {
-        //do nothing, it's already what we want
-    }
+// //Returns the map instance for the guild or TextChannel passed to it (also works by ID)
+// export function getGameFor(id : string | Discord.TextChannel | Discord.Guild) : Game
+// {
+//     //Convert guild & channel objects to IDs
+//     if(id instanceof Discord.Guild)
+//     {
+//         id = id.id;
+//     }
+//     else if(id instanceof Discord.TextChannel)
+//     {
+//         id = id.id;
+//     }
+//     else    //Assume string
+//     {
+//         //do nothing, it's already what we want
+//     }
 
-    let instance = gameInstances.get(id);
+//     let instance = gameInstances.get(id);
 
-    //If we find a Game attached directly to this channel, return it
-    if(instance != null) return instance;
+//     //If we find a Game attached directly to this channel, return it
+//     if(instance != null) return instance;
 
-    //Otherwise, we must check the rooms themselves for ID matches
-    for(let i = 0; i < gameInstances.array().length; i++)
-    {
-        if(gameInstances.array()[i].doesContain(id)) return gameInstances.array()[i];
-    }
+//     //Otherwise, we must check the rooms themselves for ID matches
+//     for(let i = 0; i < gameInstances.array().length; i++)
+//     {
+//         if(gameInstances.array()[i].doesContain(id)) return gameInstances.array()[i];
+//     }
 
-    throw "No matching Game instance found!";
-}
+//     throw "No matching Game instance found!";
+// }
 
 let alreadyInit = false;
 
@@ -343,10 +371,10 @@ client.on("ready", () => {
     //Only initialize once
     if(alreadyInit) return;
 
-    let map = new Game("668154769956929536");
+    game = new Game("668154769956929536");
     alreadyInit = true;
 
-    testSetup(map);
+    testSetup(game);
 });
 
 function sleep(ms : number) : Promise<void>
