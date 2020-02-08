@@ -40,7 +40,7 @@ fi
 #Logs a script as executed in the DB
 function markScriptExecuted ()
 {
-	echo "insert into updateTracking(scriptName) values('$1')" | mariadb -h 127.0.0.1 "-u$usern" "-p$pass" "$dbname"
+	echo "insert into updatetracking(scriptName) values('$1')" | mariadb -h 127.0.0.1 "-u$usern" "-p$pass" "$dbname"
 }
 
 #Checks if a script was executed, and then executes it if not
