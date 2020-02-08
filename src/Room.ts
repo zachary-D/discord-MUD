@@ -4,73 +4,165 @@ import * as commandHandler from "../Discord-Bot-Core/src/commandHandler";
 import {Game} from "./Game";
 import {Player} from "./Player";
 
+export class RoomLinkOptions {
+    biDirectional : boolean = true;
+    direction : string;
+    needsSearch : boolean  = false;
+    visibility : number = 1;
+}
+
+export class RoomLinkDatabaseInternal {
+    direction : string;
+    from : number;
+    to : number;
+    visibility : number;
+    needsSearch : boolean;
+}
+
+export class RoomLink {
+    database : RoomLinkDatabaseInternal;
+
+    from : Room;
+    to : Room;
+
+    get direction() : string {
+        return this.database.direction;
+    }
+
+    set direction(val : string) {
+        this.database.direction = val;
+    }
+
+    get visibility() : number {
+        return this.database.visibility;
+    }
+
+    set visibility(val : number) {
+        this.database.visibility = val;
+    }
+
+    get needsSearch() : boolean {
+        return this.database.needsSearch;
+    }
+
+    set needsSearch(val : boolean) {
+        this.database.needsSearch = val;
+    }
+
+    constructor(from : Room, to : Room, options : RoomLinkOptions = new RoomLinkOptions())
+    {
+        this.from = from;
+        this.database.from = from.id;
+        this.to = to;
+        this.database.to = to.id;
+
+        this.direction = options.direction;
+        this.visibility = options.visibility;
+        this.needsSearch = options.needsSearch;
+    }
+}
+
 export enum RoomType {
     named,      //A room you can use !move <name> to go to
     anonymous   //A room you must use !move <direction> to navigate through
 }
 
-export type roomID = number;
-
-export class RoomLink {
-    from : roomID;
-    to : roomID;
-    visibility : number;
+export class RoomDatabaseInternal {
+    id : number;
+    name : string;
+    game : number;
+    locked : boolean;
 }
 
-//A room players can enter
-export class Room {
+export class RoomInternal {
+    database : RoomDatabaseInternal = new RoomDatabaseInternal();
+
+    //The channel for this room
+    channel : Discord.TextChannel;
+
     //The rooms connected to this one
     connectedRooms : RoomLink[] = [];
 
     //The game this room belongs to
-    protected _game : Game;
+    game : Game;
 
-    //The channel for this room
-    protected textChannel : Discord.TextChannel;
+    //the type of this room
+    type : RoomType;
 
-    //If this room can be entered
-    protected locked : boolean;
-
-    get channel() : Discord.TextChannel {
-        return this.textChannel;
+    get id() : number {
+        return this.database.id;
     }
 
-    get channelID() : string {
-        return this.channel.id;
+    set id(val : number) {
+        this.database.id = val;
     }
 
-    get channelName() : string {
-        return this.channel.name;
+    get locked() : boolean {
+        return this.database.locked;
     }
 
-    get isLocked() : boolean {
-        return this.locked;
-    }
-
-    get game() : Game {
-        return this._game;
+    set locked(val : boolean) {
+        this.database.locked = val;
     }
 
     get name() : string {
-        return this.channel.name;
+        return this.database.name;
+    }
+
+    set name(val : string) {
+        this.database.name = val;
+    }
+}
+
+//A room players can enter
+export class Room {
+    protected internal : RoomInternal = new RoomInternal();
+    
+    get channel() : Discord.TextChannel {
+        return this.internal.channel;
+    }
+
+    get connectedRooms() : RoomLink[] {
+        return this.internal.connectedRooms;
+    }
+
+    get game() : Game {
+        return this.internal.game;
+    }
+
+    get id() : number {
+        return this.internal.id;
+    }
+
+    get type() : RoomType {
+        return this.internal.type;
+    }
+
+    get locked() : boolean {
+        return this.internal.locked;
+    }
+
+    get name() : string {
+        return this.internal.name;
     }
 
     constructor(category : string | Discord.TextChannel, game : Game)
     {
         if(category instanceof Discord.TextChannel)
         {
-            this.textChannel = category;
+            this.internal.channel = category;
         }
         else    //Assume it's a string
         {
-            this.textChannel = game.guild.channels.get(category) as Discord.TextChannel;
+            this.internal.channel = game.guild.channels.get(category) as Discord.TextChannel;
         }
 
         console.log(`New room instance in ${this.channel.name}`);
+        this.internal.name = this.channel.name;
 
         if(this.channel.type != "text") throw new Error("The channel is not a text channel");
 
-        this._game = game;
+        this.internal.game = game;
 
         commandHandler.bind(this.channel, "room");
     }
@@ -105,7 +197,7 @@ export class Room {
     async handleMessage(msg : Discord.Message) : Promise<void> {
         try 
         {
-            await msg.delete(10*1000); //Delete after a few seconds
+            await msg.delete(20*1000); //Delete after a short while
         }
         catch(err)
         {
@@ -135,7 +227,7 @@ export class Room {
         let players = this.game.getPlayersInRoom(this).map(p=>p.member.displayName).sort();
         if(players.length != 0)
         {
-            embed.addField("People in the room", '`' + players.join("`\n`") + '`');
+            embed.addField("Occupants", '`' + players.join("`\n`") + '`');
         }
 
         await this.channel.send(embed);
@@ -155,9 +247,17 @@ export class Room {
         await this.channel.send(embed);
     }
 
-    linkRoom(room : Room, biDirectional = true)
+    linkRoom(room : Room, options : RoomLinkOptions = new RoomLinkOptions())
     {
-        this.connectedRooms.push(room);
-        if(biDirectional) room.linkRoom(this, false);
+        if(options.biDirectional && options.direction != null) throw new Error("You cannot specify a link as bidirectional and assign it a direction");
+
+        let link = new RoomLink(this, room, options);
+
+        this.connectedRooms.push(link);
+        if(options.biDirectional)
+        {
+            options.biDirectional = false;
+            room.linkRoom(this, options);
+        }
     }
 }

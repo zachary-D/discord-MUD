@@ -36,7 +36,7 @@ module.exports = {
                     await msg.reply("Error: could not find user profile");
                     return;
                 }
-                else if(err.message === "room unknown to player")
+                else if(err.message === "room unknown to player" || err.message === "Room not found")
                 {
                     await msg.reply("You don't know of any room with that name");
                     return

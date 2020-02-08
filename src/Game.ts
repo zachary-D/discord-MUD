@@ -10,36 +10,81 @@ const playerRoleName = "Participants";
 //The name of the channel containing info (i.e. how to use the bot) that is in the category but should not be treated as a room
 const infoChannelName = "the-map";
 
-//A game
-export class Game {
+//A game, as represented in-database
+export class GameDatabaseInternal {
+    //The game ID
+    id : number;
+
+    //The guild ID
+    guild : string;
+
+    //The category channel ID
+    categoryChannel : string;
+}
+
+//A game's internal objects
+export class GameInternal {
+    database : GameDatabaseInternal = new GameDatabaseInternal();
+
     //The category channel that contains the other rooms
-    protected categoryChannel : Discord.CategoryChannel;
+    categoryChannel : Discord.CategoryChannel;
 
     //The guild this game takes place in
-    protected _guild : Discord.Guild;
-
-    protected players = new Discord.Collection<Discord.Snowflake, Player>();
-
-    get guild() : Discord.Guild {
-        return this._guild
-    }
+    guild : Discord.Guild;
 
     //The role all players of this game have
-    protected playerRole : Discord.Role;
-    
+    playerRole : Discord.Role;
+
+    //The players in this game
+    players = new Discord.Collection<Discord.Snowflake, Player>();
+
     //The rooms contained within the map
     rooms = new Discord.Collection<string, Room>();
+
+    get id() : number {
+        return this.database.id;
+    }
+
+    set id(val : number) {
+        this.database.id = val;
+    }
+}
+
+//A game
+export class Game {
+    protected internal : GameInternal = new GameInternal();
+
+    get categoryChannel() : Discord.CategoryChannel {
+        return this.internal.categoryChannel;
+    }
+
+    get guild() : Discord.Guild {
+        return this.internal.guild
+    }
+
+    get playerRole() : Discord.Role
+    {
+        return this.internal.playerRole;
+    }
+
+    get players() : Discord.Collection<Discord.Snowflake, Player> {
+        return this.internal.players;
+    }
+
+    get rooms() : Discord.Collection<string, Room> {
+        return this.internal.rooms;
+    }
 
     constructor(category : string | Discord.CategoryChannel)
     {
         //Get the CategoryChannel object
         if(category instanceof Discord.CategoryChannel)
         {
-            this.categoryChannel = category;
+            this.internal.categoryChannel = category;
         }
         else    //Assume it is a string 
         {
-            this.categoryChannel = client.channels.get(category) as Discord.CategoryChannel;
+            this.internal.categoryChannel = client.channels.get(category) as Discord.CategoryChannel;
         }
 
         console.log(`Creating a Game in ${ this.categoryChannel.name }`)
@@ -47,7 +92,7 @@ export class Game {
         if(this.categoryChannel.type != "category") throw new Error("The channel given is not a category channel");
 
         //Set the guild
-        this._guild = this.categoryChannel.guild;
+        this.internal.guild = this.categoryChannel.guild;
 
         //Spawn all child-channels as Rooms
         for(let i = 0; i < this.categoryChannel.children.array().length; i++)
@@ -58,18 +103,18 @@ export class Game {
             //Skip VCs, or anything else that made its way into the mix by accident
             if(this.categoryChannel.children.array()[i].type != "text") continue;
 
-            this.rooms.set(
+            this.internal.rooms.set(
                 this.categoryChannel.children.array()[i].id,
                 new Room(this.categoryChannel.children.array()[i] as Discord.TextChannel, this)
             );
         }
 
         //Find the player role
-        this.playerRole = this.guild.roles.find( (r) => r.name == playerRoleName);
+        this.internal.playerRole = this.guild.roles.find( (r) => r.name == playerRoleName);
         if(this.playerRole == undefined) throw new Error("Player role not found");
 
         this.playerRole.members.forEach( m => {
-            this.players.set(m.id, new Player(m, this));
+            this.internal.players.set(m.id, new Player(m, this));
         })
 
         // gameInstances.set(this.guild.id, this);
@@ -84,9 +129,9 @@ export class Game {
             ch = ch.id;
         }
 
-        for(let i = 0; i < this.rooms.array().length; i++)
+        for(let i = 0; i < this.internal.rooms.array().length; i++)
         {
-            if(this.rooms.array()[i].channelID == ch) return true;
+            if(this.internal.rooms.array()[i].channel.id == ch) return true;
         }
 
         return false;
@@ -105,7 +150,7 @@ export class Game {
             }
         }
 
-        let room : Room = this.rooms.find( (r) => r.channelName === name );
+        let room : Room = this.internal.rooms.find( (r) => r.name === name );
 
         if(room == undefined) throw new Error("Room not found");
 
@@ -125,7 +170,7 @@ export class Game {
             id = ch; 
         }
 
-        let room : Room = this.rooms.find( (r) => r.channelID == id);
+        let room : Room = this.internal.rooms.find( (r) => r.channel.id == id);
 
         if(room == undefined) throw new Error("Room not found");
 
@@ -140,7 +185,7 @@ export class Game {
             p = p.id;
         }
         
-        let player : Player = this.players.get(p);
+        let player : Player = this.internal.players.get(p);
 
         if(player == undefined) throw new Error("Player not found");
 
@@ -149,7 +194,7 @@ export class Game {
 
     //Returns a list of players in a given room
     getPlayersInRoom(room : Room) : Player[] {
-        return this.players.filter( p => p.currentRoom == room).array();
+        return this.internal.players.filter( p => p.currentRoom == room).array();
     }
 
     //Handles a message
@@ -178,7 +223,7 @@ export class Game {
     {
         let proms : Promise<unknown>[] = [];
 
-        this.rooms.forEach( r => {
+        this.internal.rooms.forEach( r => {
             if(r == player.currentRoom) proms.push(r.allowPlayer(player));
             else proms.push( r.excludePlayer(player) );
         });
@@ -192,7 +237,7 @@ export class Game {
         console.log("Starting the game");
 
         let promises = [];
-        this.players.forEach( p => promises.push(this.resyncPlayerRoomPermissions(p)));
+        this.internal.players.forEach( p => promises.push(this.resyncPlayerRoomPermissions(p)));
 
         await Promise.all(promises);
         

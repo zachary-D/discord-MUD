@@ -13,7 +13,8 @@ client.on("ready", () => {
     //Only initialize once
     if(alreadyInit) return;
 
-    game = new Game("668154769956929536");
+    game = new Game("674494731656364042");
+    game.start();
     alreadyInit = true;
 });
 

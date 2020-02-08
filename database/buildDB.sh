@@ -60,8 +60,14 @@ function tryExecScript ()
 	if [[ "$alreadyRun" == False ]]; then
 		printf "Executing: $file"
 		cat "$file" | mariadb -h 127.0.0.1 "-u$usern" "-p$pass" "$dbname"
-		markScriptExecuted "$file"
-		echo "...Done!"
+		exitcode="$?"
+		if [[ "$exitcode" == "0" ]]; then
+			echo "...Done!"
+			markScriptExecuted "$file"
+		else
+			echo "FAILED!"
+			exit 1
+		fi
 	else
 		echo "Already executed: $file"
 	fi

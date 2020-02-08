@@ -8,47 +8,59 @@ import * as utils from "./utils";
 //The name of the channel that players occupy by default
 const defaultChannelName = "limbo";
 
-//A player in a game
-export class Player {
-    //The room the player is in
-    protected _currentRoom : Room;
+export class PlayerDatabaseInternal {
+    id : number;
+    game : string;
+    discordUserID : string;
+}
 
-    //The guild member object for the player
-    protected guildMember : Discord.GuildMember;
-    
-    //Rooms this player is aware of
-    protected knownRooms = new Discord.Collection<Discord.Snowflake, Room>();
+export class PlayerInternal {
+    //The room the player is in
+    currentRoom : Room;
 
     //The game this player is a part of
-    protected parentGame : Game;
+    game : Game;
 
-    get game() : Game {
-        return this.parentGame;
-    }
-    
-    get member() : Discord.GuildMember { 
-        return this.guildMember;
-    }
+    //The guild member object for the player
+    guildMember : Discord.GuildMember;
+
+    //Rooms this player is aware of
+    knownRooms = new Discord.Collection<number, Room>();
+}
+
+//A player in a game
+export class Player {
+    internal : PlayerInternal = new PlayerInternal();
+
 
     get currentRoom() : Room {
-        return this._currentRoom;
+        return this.internal.currentRoom;
     }
 
-    set currentRoom(val : Room) {
-        this._currentRoom = val;
+    get game() : Game {
+        return this.internal.game;
+    }
+
+    get knownRooms() : Discord.Collection<number, Room> {
+        return this.internal.knownRooms;
+    }
+
+    
+    get member() : Discord.GuildMember { 
+        return this.internal.guildMember;
     }
 
     constructor(member : Discord.GuildMember, game : Game)
     {
-        this.guildMember = member;
-        this.parentGame = game;
+        this.internal.guildMember = member;
+        this.internal.game = game;
 
         console.log(`New player instance for ${member.displayName} aka ${member.user.tag}`);
 
         //TODO: remove this it's a temp fix
         //TEMP:
-        this._currentRoom = this.game.getRoomByName(defaultChannelName);
-        this.knownRooms.set(this.currentRoom.channel.id, this.currentRoom);
+        this.internal.currentRoom = this.game.getRoomByName(defaultChannelName);
+        this.markRoomKnown(this.currentRoom);
     }
 
     //Displays the rooms a user knows to the  user
@@ -67,10 +79,22 @@ export class Player {
         return utils.intersection(this.game.rooms.array(), this.knownRooms.array());
     }
 
-    //Marks the room as 'known'
-    learnRoom(roomLink : RoomLink)
+    //Handles a room connection, running any random checks and marking discovered rules as known
+    handleConnectedRoom(link : RoomLink)
     {
-        this.knownRooms.set(room.channel.id, room);
+        if(link.needsSearch) return;
+
+        //Determine if the player noticed the room or not (based on the room's visibility)
+        if(Math.random() <= link.visibility)
+        {
+            this.markRoomKnown(link.to);
+        }
+    }
+
+    markRoomKnown(room : Room)
+    {
+        this.knownRooms.set(room.id, room);
+        //TODO: add rooms to "newly noticed rooms" list
     }
 
     //Moves the player to a room
@@ -87,15 +111,17 @@ export class Player {
             room = n;
         }
 
-        if(this._currentRoom == room) throw new Error("user is already in that room");
+        if(this.currentRoom == room) throw new Error("user is already in that room");
 
-        if(this.knownRooms.get(room.channel.id) == undefined) throw new Error("room unknown to player");
+        if(this.knownRooms.get(room.id) == undefined) throw new Error("room unknown to player");
 
         await this.game.movePlayer(this, this.currentRoom, room);
-        this._currentRoom = room;
+        this.internal.currentRoom = room;
 
         room.connectedRooms.forEach( r => {
-            this.learnRoom(r)
-        })
+            this.handleConnectedRoom(r)
+        });
+
+        //TODO: create 'noticed rooms' embed
     }
 }
