@@ -2,6 +2,7 @@ CREATE TABLE `games` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `guild` varchar(50) NOT NULL,
   `categoryChannel` varchar(50) NOT NULL,
+  `status` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `guild` (`guild`)
 );
@@ -21,6 +22,7 @@ CREATE TABLE `rooms` (
   `name` varchar(50) NOT NULL,
   `game` int(11) NOT NULL,
   `locked` tinyint(4) NOT NULL,
+  `static` tinyint NOT NULL,
   PRIMARY KEY (`id`),
   KEY `name` (`name`),
   KEY `game` (`game`),
@@ -30,7 +32,9 @@ CREATE TABLE `rooms` (
 CREATE TABLE `roomconnections` (
   `from` int(11) NOT NULL,
   `to` int(11) NOT NULL,
+  `direction` varchar(50),
   `visibility` float NOT NULL,
+  `needsSearch` tinyint NOT NULL,
   PRIMARY KEY (`from`,`to`),
   KEY `from` (`from`),
   KEY `to` (`to`),

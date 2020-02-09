@@ -1,1 +1,0 @@
-ALTER TABLE `roomconnections` ADD `needsSearch` tinyint NOT NULL AFTER `visibility`;

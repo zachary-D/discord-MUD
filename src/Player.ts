@@ -2,6 +2,7 @@ import * as Discord from "discord.js";
 
 import {Game} from "./Game";
 import {Room, RoomLink} from "./Room";
+import {database} from "../modules/roomManager";
 
 import * as utils from "./utils";
 
@@ -10,11 +11,13 @@ const defaultChannelName = "limbo";
 
 export class PlayerDatabaseInternal {
     id : number;
-    game : string;
+    game : number;
     discordUserID : string;
 }
 
 export class PlayerInternal {
+    database : PlayerDatabaseInternal = new PlayerDatabaseInternal();
+
     //The room the player is in
     currentRoom : Room;
 

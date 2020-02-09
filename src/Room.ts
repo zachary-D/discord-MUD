@@ -3,6 +3,7 @@ import * as Discord from "discord.js";
 import * as commandHandler from "../Discord-Bot-Core/src/commandHandler";
 import {Game} from "./Game";
 import {Player} from "./Player";
+import {database} from "../modules/roomManager";
 
 export class RoomLinkOptions {
     biDirectional : boolean = true;
@@ -62,22 +63,25 @@ export class RoomLink {
     }
 }
 
-export enum RoomType {
-    named,      //A room you can use !move <name> to go to
-    anonymous   //A room you must use !move <direction> to navigate through
-}
-
 export class RoomDatabaseInternal {
+    //If the room is anonymous (aka non-named).  If so, players must use !move <direction> to navigate through
+    anonymous : boolean;
+    //The room ID in the DB
     id : number;
-    name : string;
+    //The game ID
     game : number;
+    //If the room is locked
     locked : boolean;
+    //The room name
+    name : string;
+    //If the room is static.  If true, the channel is never re-used.  If false, when the room is empty the channel it's in may be re-used for another room
+    static : boolean;
 }
 
 export class RoomInternal {
     database : RoomDatabaseInternal = new RoomDatabaseInternal();
 
-    //The channel for this room
+    //The channel this room is attached to
     channel : Discord.TextChannel;
 
     //The rooms connected to this one
@@ -86,8 +90,13 @@ export class RoomInternal {
     //The game this room belongs to
     game : Game;
 
-    //the type of this room
-    type : RoomType;
+    get anonymous() : boolean {
+        return this.database.anonymous;
+    }
+
+    set anonymous(val : boolean) {
+        this.database.anonymous = val;
+    }
 
     get id() : number {
         return this.database.id;
@@ -112,6 +121,14 @@ export class RoomInternal {
     set name(val : string) {
         this.database.name = val;
     }
+
+    get static() : boolean {
+        return this.database.static;
+    }
+
+    set static(val : boolean) {
+        this.database.static = val;
+    }
 }
 
 //A room players can enter
@@ -132,10 +149,6 @@ export class Room {
 
     get id() : number {
         return this.internal.id;
-    }
-
-    get type() : RoomType {
-        return this.internal.type;
     }
 
     get locked() : boolean {

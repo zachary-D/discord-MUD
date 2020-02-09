@@ -1,1 +1,0 @@
-ALTER TABLE `roomconnections` ADD `direction` varchar(50) AFTER `to`;

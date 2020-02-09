@@ -1,0 +1,8 @@
+{
+    "DriverName": "mysql",
+    "Username": "",
+    "Password": "",
+    "Hostname": "127.0.0.1",
+    "Port": 3306,
+    "Database": "primetime"
+}
