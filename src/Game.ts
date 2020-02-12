@@ -83,6 +83,7 @@ export class GameInternal {
         this.database.status = val;
     }
 
+    //Processes the data from the database into the internal memory objects
     async load(id : number) : Promise<void> {
         await this.database.load(id);
 
@@ -91,6 +92,7 @@ export class GameInternal {
 
         this.categoryChannel = this.guild.channels.get(this.database.categoryChannel) as Discord.CategoryChannel;
         if(this.categoryChannel == undefined) throw new Error("CategoryChannel not found");
+        else if(this.categoryChannel.type != "category") throw new Error("CategoryChannel is not a category channel");
 
         this.playerRole = this.guild.roles.find( (r) => r.name == playerRoleName);
         if(this.playerRole == undefined) throw new Error("Player role not found");
@@ -101,6 +103,10 @@ export class GameInternal {
 
         await playerProm;
         await roomProm;
+    }
+
+    async save() : Promise<void> {
+        throw new Error("Not yet implemented");
     }
 
     async loadPlayers() : Promise<void> {
@@ -157,17 +163,12 @@ export class Game {
         return this.internal.players;
     }
 
-    get rooms() : Discord.Collection<string, Room> {
+    get rooms() : Discord.Collection<string, Room> {/*  */
         return this.internal.rooms;
     }
 
     get status() : GameStatus {
         return this.internal.status;
-    }
-
-    constructor(category : string | Discord.CategoryChannel)
-    {
-        
     }
 
     //Returns true if this map contains the channel passed to it 
@@ -261,36 +262,18 @@ export class Game {
         }
     }
 
+    //Loads the game `id` into this instance
     async load(id : number) : Promise<void>
     {
         await this.internal.load(id);
 
-        console.log(`Loading a Game in ${ this.categoryChannel.name }`)
+        console.log(`Loading Game ${this.id} in ${ this.categoryChannel.name }`);
 
-        if(this.categoryChannel.type != "category") throw new Error("The channel given is not a category channel");
-
-        //Spawn all child-channels as Rooms
-        for(let i = 0; i < this.categoryChannel.children.array().length; i++)
-        {
-            //Skip the info-channel
-            if(this.categoryChannel.children.array()[i].name === infoChannelName) continue;
-
-            //Skip VCs, or anything else that made its way into the mix by accident
-            if(this.categoryChannel.children.array()[i].type != "text") continue;
-
-            this.internal.rooms.set(
-                this.categoryChannel.children.array()[i].id,
-                new Room(this.categoryChannel.children.array()[i] as Discord.TextChannel, this)
-            );
-        }
-
+        //TODO: Ensure all players have the player role
         
+        //TODO: Ensure all members with the player role are registered as players
 
-        this.playerRole.members.forEach( m => {
-            this.internal.players.set(m.id, new Player(m, this));
-        })
-
-        // gameInstances.set(this.guild.id, this);
+        //TODO: Free all dynamic channels to the channel pool
     }
 
     //Moves a player from one room to another

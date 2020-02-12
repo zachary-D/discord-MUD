@@ -76,6 +76,15 @@ export class RoomDatabaseInternal {
     name : string;
     //If the room is static.  If true, the channel is never re-used.  If false, when the room is empty the channel it's in may be re-used for another room
     static : boolean;
+
+    //Loads the game data for `id` into the database
+    async load(id : number) : Promise<void> {
+
+    }
+
+    async save() : Promise<void> {
+        throw new Error("Not yet implemented");
+    }
 }
 
 export class RoomInternal {
@@ -89,6 +98,20 @@ export class RoomInternal {
 
     //The game this room belongs to
     game : Game;
+
+    //Processes the data from the database into the internal memory objects
+    async load(id : number) : Promise<void> {
+
+
+
+        if(this.channel.type != "text") throw new Error("The channel is not a text channel");
+
+        commandHandler.bind(this.channel, "room");
+    }
+
+    async save() : Promise<void> {
+        throw new Error("Not yet implemented");
+    }
 
     get anonymous() : boolean {
         return this.database.anonymous;
@@ -159,25 +182,11 @@ export class Room {
         return this.internal.name;
     }
 
-    constructor(category : string | Discord.TextChannel, game : Game)
+    constructor(parent : Game)
     {
-        if(category instanceof Discord.TextChannel)
-        {
-            this.internal.channel = category;
-        }
-        else    //Assume it's a string
-        {
-            this.internal.channel = game.guild.channels.get(category) as Discord.TextChannel;
-        }
+        this.internal.game = parent;
 
-        console.log(`New room instance in ${this.channel.name}`);
-        this.internal.name = this.channel.name;
-
-        if(this.channel.type != "text") throw new Error("The channel is not a text channel");
-
-        this.internal.game = game;
-
-        commandHandler.bind(this.channel, "room");
+        
     }
 
     //Allows a user to view this channel
@@ -226,6 +235,17 @@ export class Room {
             //re-throw it otherwise
             throw err;
         }
+    }
+
+    //Loads the room `id` into this instance
+    async load(id : number) : Promise<void> {
+        await this.internal.load(id);
+
+        console.log(`New room instance ${this.name}`);
+
+        //TODO: Clean up channel (delete and messages that weren't purged)
+
+        //TODO: If static, find our channel
     }
 
     //Sends the "user entered the room, current occupants" message and allows a user to view the channel

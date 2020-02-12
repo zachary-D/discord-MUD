@@ -13,6 +13,14 @@ export class PlayerDatabaseInternal {
     id : number;
     game : number;
     discordUserID : string;
+    
+    async load(id : number) : Promise<void> {
+
+    }
+
+    async save() : Promise<void> {
+        throw new Error("Not yet implemented");
+    }
 }
 
 export class PlayerInternal {
@@ -29,6 +37,21 @@ export class PlayerInternal {
 
     //Rooms this player is aware of
     knownRooms = new Discord.Collection<number, Room>();
+
+    async load(id : number) : Promise<void> {
+        await this.database.load(id);
+
+        // this.currentRoom = this.game.getRoomByID(this.database)
+
+        //game is already populated from the parent, just check it
+        if(this.database.game != this.game.id) {
+            throw new Error("Database game ID is different from the parent game's ID");
+        }
+    }
+
+    async save() : Promise<void> {
+        throw new Error("Not yet implemented");
+    }
 }
 
 //A player in a game
@@ -53,17 +76,9 @@ export class Player {
         return this.internal.guildMember;
     }
 
-    constructor(member : Discord.GuildMember, game : Game)
+    constructor(parent : Game)
     {
-        this.internal.guildMember = member;
-        this.internal.game = game;
-
-        console.log(`New player instance for ${member.displayName} aka ${member.user.tag}`);
-
-        //TODO: remove this it's a temp fix
-        //TEMP:
-        this.internal.currentRoom = this.game.getRoomByName(defaultChannelName);
-        this.markRoomKnown(this.currentRoom);
+        this.internal.game = parent;
     }
 
     //Displays the rooms a user knows to the  user
@@ -92,6 +107,16 @@ export class Player {
         {
             this.markRoomKnown(link.to);
         }
+    }
+
+    //Loads the game `id` into this instance
+    async load(id : number) : Promise<void> {
+        await this.internal.load(id);
+
+        console.log(`New player instance for ${this.member.displayName} aka ${this.member.user.tag}`);
+
+
+        //Ensure the player has the game-role
     }
 
     markRoomKnown(room : Room)
