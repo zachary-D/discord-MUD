@@ -9,6 +9,9 @@ import * as utils from "./utils";
 //The name of the channel that players occupy by default
 const defaultChannelName = "limbo";
 
+const sql_loadPlayer = database.prepareStatement("select id, game, discordUserID from players where id = ?");
+const sql_savePlayer = database.prepareStatement("update players set game = ?, discordUserID = ? where id = ?");
+
 export class PlayerDatabaseInternal {
     id : number;
     game : number;
