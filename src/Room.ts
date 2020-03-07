@@ -3,7 +3,6 @@ import * as Discord from "discord.js";
 import * as commandHandler from "../Discord-Bot-Core/src/commandHandler";
 import {Game} from "./Game";
 import {Player} from "./Player";
-import {database} from "../modules/roomManager";
 
 export class RoomLinkOptions {
     biDirectional : boolean = true;
@@ -15,9 +14,18 @@ export class RoomLinkOptions {
 export class RoomLinkDatabaseInternal {
     direction : string;
     from : number;
+    id : number;
+    needsSearch : boolean;
     to : number;
     visibility : number;
-    needsSearch : boolean;
+
+    async load(id : number) {
+
+    }
+
+    async save() : Promise<void> {
+        throw new Error("not yet implemented");
+    }
 }
 
 export class RoomLink {

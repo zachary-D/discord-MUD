@@ -39,8 +39,8 @@ export class GameDatabaseInternal {
 
     //Loads the game data for `id` from the database
     async load(id : number) : Promise<void> {
-        let obj = await sql_loadGame.query(id);
-        Object.assign(this, obj);
+        let data = await sql_loadGame.query(id);
+        Object.assign(this, data);
     }
 
     async save() : Promise<void> {

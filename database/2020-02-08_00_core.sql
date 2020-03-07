@@ -29,17 +29,19 @@ CREATE TABLE `rooms` (
   CONSTRAINT `FK_rooms_games` FOREIGN KEY (`game`) REFERENCES `games` (`id`)
 );
 
-CREATE TABLE `roomconnections` (
+CREATE TABLE `roomlinks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `from` int(11) NOT NULL,
   `to` int(11) NOT NULL,
-  `direction` varchar(50),
+  `direction` varchar(50) NOT NULL,
   `visibility` float NOT NULL,
   `needsSearch` tinyint NOT NULL,
-  PRIMARY KEY (`from`,`to`),
+  PRIMARY KEY (`id`),
   KEY `from` (`from`),
   KEY `to` (`to`),
-  CONSTRAINT `FK_roomconnections-from_rooms` FOREIGN KEY (`from`) REFERENCES `rooms` (`id`),
-  CONSTRAINT `FK_roomconnections-to_rooms` FOREIGN KEY (`to`) REFERENCES `rooms` (`id`)
+  UNIQUE KEY `from-to-unique` (`from`,`to`),
+  CONSTRAINT `FK_roomlinks-from_rooms` FOREIGN KEY (`from`) REFERENCES `rooms` (`id`),
+  CONSTRAINT `FK_roomlinks-to_rooms` FOREIGN KEY (`to`) REFERENCES `rooms` (`id`)
 );
 
 CREATE TABLE `player_knownrooms` (

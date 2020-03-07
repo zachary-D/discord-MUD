@@ -1,16 +1,13 @@
 import * as Discord from "discord.js";
 
+import {getQuery} from "./databaseManager";
 import {Game} from "./Game";
 import {Room, RoomLink} from "./Room";
-import {database} from "../modules/roomManager";
 
 import * as utils from "./utils";
 
 //The name of the channel that players occupy by default
 const defaultChannelName = "limbo";
-
-const sql_loadPlayer = database.prepareStatement("select id, game, discordUserID from players where id = ?");
-const sql_savePlayer = database.prepareStatement("update players set game = ?, discordUserID = ? where id = ?");
 
 export class PlayerDatabaseInternal {
     id : number;
@@ -18,11 +15,12 @@ export class PlayerDatabaseInternal {
     discordUserID : string;
     
     async load(id : number) : Promise<void> {
-
+        let data = await getQuery("loadPlayer").query(id);
+        Object.assign(this, data);
     }
 
     async save() : Promise<void> {
-        throw new Error("Not yet implemented");
+        await getQuery("savePlayer").query(this.game, this.discordUserID, this.id);
     }
 }
 
@@ -44,8 +42,6 @@ export class PlayerInternal {
     async load(id : number) : Promise<void> {
         await this.database.load(id);
 
-        // this.currentRoom = this.game.getRoomByID(this.database)
-
         //game is already populated from the parent, just check it
         if(this.database.game != this.game.id) {
             throw new Error("Database game ID is different from the parent game's ID");
@@ -53,14 +49,13 @@ export class PlayerInternal {
     }
 
     async save() : Promise<void> {
-        throw new Error("Not yet implemented");
+        this.database.save();
     }
 }
 
 //A player in a game
 export class Player {
     internal : PlayerInternal = new PlayerInternal();
-
 
     get currentRoom() : Room {
         return this.internal.currentRoom;
@@ -73,7 +68,6 @@ export class Player {
     get knownRooms() : Discord.Collection<number, Room> {
         return this.internal.knownRooms;
     }
-
     
     get member() : Discord.GuildMember { 
         return this.internal.guildMember;
