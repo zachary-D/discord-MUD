@@ -57,6 +57,10 @@ export class PlayerInternal {
         this.database.currentRoom = this._currentRoom.id
     }
 
+    get id() : number {
+        return this.database.id; 
+    }
+
     //The game this player is a part of
     private _game : Game;
 
@@ -84,23 +88,34 @@ export class PlayerInternal {
     //Rooms this player is aware of
     knownRooms = new Discord.Collection<number, Room>();
 
-
     private async initObjects() {
         //game is already populated from the parent, just check it
         if(this.database.game != this.game.id) {
             throw new Error("Database game ID is different from the parent game's ID");
         }
+
+        if(this.guildMember == undefined) {
+            //If the guildMember is undefined, load it 
+            this.guildMember = this.game.guild.members.get(this.database.discordUserID);
+
+            //TODO: should probably get a 'real' debug/warn/err logging system
+            if(this.guildMember == undefined) console.log(`WARNING: player ${this.id} loaded without valid discord userID`);
+        }
+        else {
+            //Otherwise check it
+            if(this.guildMember.id != this.database.discordUserID) {
+                throw new Error("error loading: loaded userID is different than the member's ID");
+            }
+        }
+    }
+
+    async loadById(id : number) : Promise<void> {
+        await this.database.loadById(id);
+        await this.initObjects();
     }
 
     async loadByMember(member : Discord.GuildMember) : Promise<void> {
         await this.database.loadByMemberAndGame(member, this.game);
-
-        if(this.database.game != this.game.id)
-        //TODO: FINISH
-        //TODO: LEFT OFF HERE
-        //LEFT OFF HERE:
-        
-
         await this.initObjects();
     }
 
