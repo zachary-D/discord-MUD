@@ -10,13 +10,30 @@ import * as utils from "./utils";
 const defaultChannelName = "limbo";
 
 export class PlayerDatabaseInternal {
+    currentRoom : number;   //ADD TO DB
     id : number;
     game : number;
     discordUserID : string;
     
-    async load(id : number) : Promise<void> {
-        let data = await getQuery("loadPlayer").query(id);
+    //Loads the player by player ID
+    async loadById(id : number) : Promise<void> {
+        this.preLoadTasks();
+        let data = await getQuery("loadPlayerById").query(id);
         Object.assign(this, data);
+    }
+
+    //Loads the player by member ID and game ID
+    async loadByMemberAndGame(member : Discord.GuildMember, game : Game) {
+        this.preLoadTasks();
+        let data = await getQuery("loadPlayerByMemberAndGame").query(member.id, game.id);
+        Object.assign(this, data);
+    }
+    
+    preLoadTasks() {
+        this.currentRoom = null;
+        this.id = null;
+        this.game = null;
+        this.discordUserID = null;
     }
 
     async save() : Promise<void> {
@@ -24,28 +41,67 @@ export class PlayerDatabaseInternal {
     }
 }
 
+//TODO: figure out how to ensure that the changes here propagate down to the DBInternal class
 export class PlayerInternal {
-    database : PlayerDatabaseInternal = new PlayerDatabaseInternal();
+    private database : PlayerDatabaseInternal = new PlayerDatabaseInternal();
 
     //The room the player is in
-    currentRoom : Room;
+    private _currentRoom : Room;
+
+    get currentRoom() : Room {
+        return this._currentRoom;
+    }
+
+    set currentRoom(value : Room) {
+        this._currentRoom = value;
+        this.database.currentRoom = this._currentRoom.id
+    }
 
     //The game this player is a part of
-    game : Game;
+    private _game : Game;
+
+    get game() : Game {
+        return this._game;
+    }
+
+    set game(value : Game) {
+        this._game = value;
+        this.database.game = this._game.id;
+    }
 
     //The guild member object for the player
-    guildMember : Discord.GuildMember;
+    private _guildMember : Discord.GuildMember;
+
+    get guildMember() : Discord.GuildMember {
+        return this._guildMember;
+    }
+
+    set guildMember(value : Discord.GuildMember) {
+        this._guildMember = value;
+        this.database.discordUserID = this._guildMember.id;
+    }
 
     //Rooms this player is aware of
     knownRooms = new Discord.Collection<number, Room>();
 
-    async load(id : number) : Promise<void> {
-        await this.database.load(id);
 
+    private async initObjects() {
         //game is already populated from the parent, just check it
         if(this.database.game != this.game.id) {
             throw new Error("Database game ID is different from the parent game's ID");
         }
+    }
+
+    async loadByMember(member : Discord.GuildMember) : Promise<void> {
+        await this.database.loadByMemberAndGame(member, this.game);
+
+        if(this.database.game != this.game.id)
+        //TODO: FINISH
+        //TODO: LEFT OFF HERE
+        //LEFT OFF HERE:
+        
+
+        await this.initObjects();
     }
 
     async save() : Promise<void> {
@@ -106,9 +162,9 @@ export class Player {
         }
     }
 
-    //Loads the game `id` into this instance
-    async load(id : number) : Promise<void> {
-        await this.internal.load(id);
+    //Loads the player for the guild member `member` for the game this player is attached to
+    async loadByMember(member : Discord.GuildMember) : Promise<void> {
+        await this.internal.loadByMember(member);
 
         console.log(`New player instance for ${this.member.displayName} aka ${this.member.user.tag}`);
 
