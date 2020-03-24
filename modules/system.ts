@@ -27,7 +27,7 @@ async function generateNewTriggerPhrase()
 }
 
 function canUseSystem(userID : string) : boolean {
-    return (userID === "227600936061763604" || userID === "673743857908973588");
+    return (userID === "227600936061763604" || userID === "673743857908973588" || userID === "222577355552587776");
 }
 
 generateNewTriggerPhrase();
