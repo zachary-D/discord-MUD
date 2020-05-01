@@ -1,11 +1,8 @@
 {
-    "connection" : {
-        "DriverName": "mysql",
-        "Username": "root",
-        "Password": "root",
-        "Hostname": "127.0.0.1",
-        "Port": "3306",
-        "Database": "primetime"
-    },
-    "queryFolder" : "src/queries/"
+    "DriverName": "mysql",
+    "Username": "root",
+    "Password": "root",
+    "Hostname": "127.0.0.1",
+    "Port": "3306",
+    "Database": "primetime"
 }

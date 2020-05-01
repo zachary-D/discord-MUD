@@ -1,7 +1,7 @@
 CREATE TABLE `games` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `guild` varchar(50) NOT NULL,
-  `categoryChannel` varchar(50) NOT NULL,
+  `guildID` varchar(50) NOT NULL,
+  `categoryChannelID` varchar(50) NOT NULL,
   `status` int(11) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `guild` (`guild`)

@@ -3,100 +3,83 @@ import * as Discord from "discord.js";
 import * as commandHandler from "../Discord-Bot-Core/src/commandHandler";
 import {Game} from "./Game";
 import {Player} from "./Player";
+import { dir } from "console";
 
-export class RoomLinkOptions {
-    biDirectional : boolean = true;
-    direction : string;
-    needsSearch : boolean  = false;
-    visibility : number = 1;
+export enum CardinalDirection {
+    north = "North",
+    east = "East",
+    south = "South",
+    west = "West",
 }
 
-export class RoomLinkDatabaseInternal {
-    direction : string;
-    from : number;
-    id : number;
-    needsSearch : boolean;
-    to : number;
-    visibility : number;
+//Maps built-in direction descriptions to their inverses
+const directionDescriptionInverses = new Discord.Collection<string, string>();
 
-    async load(id : number) {
-
-    }
-
-    async save() : Promise<void> {
-        throw new Error("not yet implemented");
-    }
+//Adds a pair of directional inverses (maps A to B and B to A)
+function addDirectionDescriptionInverse(direction: string, inverse: string) {
+    directionDescriptionInverses.set(direction, inverse);
+    directionDescriptionInverses.set(inverse, direction);
 }
 
-export class RoomLink {
-    database : RoomLinkDatabaseInternal;
+//Define some default inverses
+addDirectionDescriptionInverse(CardinalDirection.north, CardinalDirection.south);
+addDirectionDescriptionInverse(CardinalDirection.east, CardinalDirection.west);
 
-    from : Room;
-    to : Room;
 
-    get direction() : string {
-        return this.database.direction;
-    }
+interface RoomLinkVisibilityOptions {
+    needsSearch?: boolean;
+    visibility?: number;
+}
 
-    set direction(val : string) {
-        this.database.direction = val;
-    }
+export class RoomLink implements RoomLinkVisibilityOptions {
+    from: Room;
+    to: Room;
 
-    get visibility() : number {
-        return this.database.visibility;
-    }
+    biDirectional: boolean;
+    directionDescription: string;
+    needsSearch: boolean;
+    visibility: number;
 
-    set visibility(val : number) {
-        this.database.visibility = val;
-    }
+    //TODO: figure out how rooms will be arrange (grid, hexes, octagons, custom named directions, etc.)
 
-    get needsSearch() : boolean {
-        return this.database.needsSearch;
-    }
-
-    set needsSearch(val : boolean) {
-        this.database.needsSearch = val;
-    }
-
-    constructor(from : Room, to : Room, options : RoomLinkOptions = new RoomLinkOptions())
+    static createNewLink(from : Room, to : Room, directionDescription: string, biDirectional: boolean, options: RoomLinkVisibilityOptions = {})
     {
-        this.from = from;
-        this.database.from = from.id;
-        this.to = to;
-        this.database.to = to.id;
+        const link = new RoomLink();
 
-        this.direction = options.direction;
-        this.visibility = options.visibility;
-        this.needsSearch = options.needsSearch;
+        link.from = from;
+        link.to = to;
+
+        link.directionDescription = directionDescription;
+        if(directionDescriptionInverses.get(link.directionDescription) == null && biDirectional) {
+             throw new Error(`Unable to create new link: the inverse of directionDescription "${link.directionDescription}" is not known but biDirectional is set to true`);
+        }
+
+        link.biDirectional = biDirectional;
+
+        link.needsSearch = options.needsSearch || false;
+
+        link.visibility = options.visibility || 1;
+        if(link.visibility <= 0) {
+            console.log(`WARN: Room link visibility is zero.  This link will never be found.`);
+            link.visibility = 0;
+        }
+        if(link.visibility > 1) link.visibility = 1;
+
+        return link;
     }
 }
 
-export class RoomDatabaseInternal {
+export class Room {
     //If the room is anonymous (aka non-named).  If so, players must use !move <direction> to navigate through
     anonymous : boolean;
     //The room ID in the DB
     id : number;
-    //The game ID
-    game : number;
     //If the room is locked
     locked : boolean;
     //The room name
     name : string;
     //If the room is static.  If true, the channel is never re-used.  If false, when the room is empty the channel it's in may be re-used for another room
     static : boolean;
-
-    //Loads the game data for `id` into the database
-    async load(id : number) : Promise<void> {
-
-    }
-
-    async save() : Promise<void> {
-        throw new Error("Not yet implemented");
-    }
-}
-
-export class RoomInternal {
-    database : RoomDatabaseInternal = new RoomDatabaseInternal();
 
     //The channel this room is attached to
     channel : Discord.TextChannel;
@@ -106,96 +89,6 @@ export class RoomInternal {
 
     //The game this room belongs to
     game : Game;
-
-    //Processes the data from the database into the internal memory objects
-    async load(id : number) : Promise<void> {
-
-
-
-        if(this.channel.type != "text") throw new Error("The channel is not a text channel");
-
-        commandHandler.bind(this.channel, "room");
-    }
-
-    async save() : Promise<void> {
-        throw new Error("Not yet implemented");
-    }
-
-    get anonymous() : boolean {
-        return this.database.anonymous;
-    }
-
-    set anonymous(val : boolean) {
-        this.database.anonymous = val;
-    }
-
-    get id() : number {
-        return this.database.id;
-    }
-
-    set id(val : number) {
-        this.database.id = val;
-    }
-
-    get locked() : boolean {
-        return this.database.locked;
-    }
-
-    set locked(val : boolean) {
-        this.database.locked = val;
-    }
-
-    get name() : string {
-        return this.database.name;
-    }
-
-    set name(val : string) {
-        this.database.name = val;
-    }
-
-    get static() : boolean {
-        return this.database.static;
-    }
-
-    set static(val : boolean) {
-        this.database.static = val;
-    }
-}
-
-//A room players can enter
-export class Room {
-    protected internal : RoomInternal = new RoomInternal();
-    
-    get channel() : Discord.TextChannel {
-        return this.internal.channel;
-    }
-
-    get connectedRooms() : RoomLink[] {
-        return this.internal.connectedRooms;
-    }
-
-    get game() : Game {
-        return this.internal.game;
-    }
-
-    get id() : number {
-        return this.internal.id;
-    }
-
-    get locked() : boolean {
-        return this.internal.locked;
-    }
-
-    get name() : string {
-        return this.internal.name;
-    }
-
-    constructor(parent : Game)
-    {
-        this.internal.game = parent;
-
-        
-    }
 
     //Allows a user to view this channel
     async allowPlayer(player : Player)
